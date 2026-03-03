@@ -3,7 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Repository;
-using Services;
+using Repository.Product;
+using Services.Product;
 
 namespace AppApi
 {

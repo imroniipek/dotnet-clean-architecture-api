@@ -1,108 +1,144 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Repository.Product;
 using Repository;
 
-namespace Services;
+namespace Services.Product;
 
-public class ProductServices(IProductInterface productInterface,IUnitOfWork unitofWork):IProductService
+public class ProductServices : IProductService
 {
+    private readonly IProductInterface _productRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public ProductServices(IProductInterface productRepository, IUnitOfWork unitOfWork)
+    {
+        _productRepository = productRepository;
+        _unitOfWork = unitOfWork;
+    }
+
     public async Task<ServiceResult<List<ProductDto>>> GetTopPriceProductAsync(int count)
     {
-       var  products=await productInterface.TheTopSellingProducts(count);
-
-       if (!products.IsNullOrEmpty())
-       {
-           var dtoList = products.Select(p => new ProductDto(p.Id, p.Name, p.Price, p.Stok)).ToList();
-           return ServiceResult<List<ProductDto>>.Success(dtoList);
-       }
-
-       return ServiceResult<List<ProductDto>>.Failed(new string[] { "bir hata olustu" });
-
-    }
-    
-    public async Task<ServiceResult<Product>> getProductByIdAsync(int id)
-    {
-        var theProduct = await productInterface.GetByIdAsync(id);
-
-        if (theProduct==null)
-        {
-            return ServiceResult<Product>.Failed(new string[] {"The Product is not found."});
-        }
-        
-        return ServiceResult<Product>.Success(theProduct);
-    }
-
-    //Burda bunu yapmamın sebebi buyuk verileri parcalı parcalı ve sayfa sayfa bir sekilde getirmektir//
-    
-    public async Task<ServiceResult<List<ProductDto>>> GetPagedAllListedAsync(int pageIndex,int pageSize)
-    {
-        var products = await productInterface.GetAll().Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+        var products = await _productRepository.TheTopSellingProducts(count);
 
         if (products.IsNullOrEmpty())
-        {
-            ServiceResult.Failed(new string[] { "Listede Hic Urun Bulunamadı" });
-        }
-        
-        
-        var productsDto= products.Select(product => new ProductDto(product.Id, product.Name, product.Price, product.Stok)).ToList();
+            return ServiceResult<List<ProductDto>>.Failed(new[] { "Ürün bulunamadı" });
 
-        return ServiceResult<List<ProductDto>>.Success(productsDto);
+        var dtoList = products
+            .Select(p => new ProductDto(p.Id, p.Name, p.Price, p.StockCount))
+            .ToList();
+
+        return ServiceResult<List<ProductDto>>.Success(dtoList);
     }
-    
+
+    public async Task<ServiceResult<Repository.Product.Product>> GetProductByIdAsync(int productId)
+    {
+        var product = await _productRepository.GetByIdAsync(productId);
+
+        if (product.Equals(null))
+            return ServiceResult<Repository.Product.Product>.Failed(new[] { "Ürün bulunamadı" });
+
+        return ServiceResult<Repository.Product.Product>.Success(product);
+    }
+
+    public async Task<ServiceResult<List<ProductDto>>> GetPagedAllListedAsync(int pageIndex, int pageSize)
+    {
+        var products = await _productRepository.GetAll()
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        if (!products.Any())
+            return ServiceResult<List<ProductDto>>.Failed(new[] { "Listede ürün bulunamadı" });
+
+        var dtoList = products
+            .Select(p => new ProductDto(p.Id, p.Name, p.Price, p.StockCount))
+            .ToList();
+
+        return ServiceResult<List<ProductDto>>.Success(dtoList);
+    }
+
+    public async Task<ServiceResult> UpdateStock(UpdateProductStockRequest request)
+    {
+        var theProduct = await _productRepository.GetByIdAsync(request.ProductId);
+
+        if (theProduct is null)
+            return ServiceResult.Failed(new[] { "The Product was not found" });
+
+        theProduct.StockCount = request.Quantity;
+        _productRepository.Update(theProduct);
+        await _unitOfWork.SaveChangesAsync();
+
+        return ServiceResult.Success();
+    }
+
+
+    public async Task<ServiceResult> UpdateStock(UpdateProductRequest request)
+    {
+        var theProduct=await _productRepository.GetByIdAsync(request.Id);
+
+        if (theProduct is null)
+        {
+            return ServiceResult.Failed(new [] { "The Product was not found " });
+        }
+
+        theProduct.StockCount = request.Stock;
+        _productRepository.Update(theProduct);
+        await _unitOfWork.SaveChangesAsync();
+        return ServiceResult.Success();
+    }
+
     public async Task<ServiceResult<CreateProductResponse>> CreateProductAsync(CreateProductRequest request)
     {
-        var product = new Product
+        var product = new Repository.Product.Product
         {
             Name = request.Name,
             Price = request.Price,
-            Stok = request.Stok 
+            StockCount = request.Stok
         };
 
-        await productInterface.AddAsync(product);
+        await _productRepository.AddAsync(product);
+        await _unitOfWork.SaveChangesAsync();
 
-        await unitofWork.SaveChangesAsync();
-
-        return ServiceResult<CreateProductResponse>.Success(new CreateProductResponse(product.Id));
+        return ServiceResult<CreateProductResponse>.SuccessAsCreated(new CreateProductResponse(product.Id),$"/api/products/{product.Id}");
     }
 
-    public async Task<ServiceResult> UpdateProductAsync(int ProductId, UpdateProductRequest request)
+    public async Task<ServiceResult> UpdateProductAsync(int productId, UpdateProductRequest request)
     {
-        var theProduct=await productInterface.GetByIdAsync(ProductId);
-        if (theProduct == null)
-        {
-            return ServiceResult.Failed(new[] { "Ürün Bulunamadı" });
-        }
-            theProduct.Name = request.Name;
-            theProduct.Price = request.Price;
-            theProduct.Stok = request.Stok;
-            
-             productInterface.Update(theProduct);
+        var product = await _productRepository.GetByIdAsync(productId);
 
-             await unitofWork.SaveChangesAsync();
-             return ServiceResult.Success();
-        
+        if (product is null)
+        {
+            return ServiceResult.Failed(new[] { "Ürün bulunamadı" });
+        }
+
+        product.Name = request.Name;
+        product.Price = request.Price;
+        product.StockCount = request.Stock;
+
+        _productRepository.Update(product);
+        await _unitOfWork.SaveChangesAsync();
+
+        return ServiceResult.Success();
     }
 
-    public async Task<ServiceResult> DeleteProductAsync(int ProductId)
+    public async Task<ServiceResult> DeleteProductAsync(int productId)
     {
-        var theProduct=await productInterface.GetByIdAsync(ProductId);
+        var product = await _productRepository.GetByIdAsync(productId);
 
-        if (theProduct == null)
-        {
-            return ServiceResult.Failed(new[] { "Bulunamadı" });
-        }
-        else
-        {
-            productInterface.Delete(theProduct);
-            await unitofWork.SaveChangesAsync();
-            return ServiceResult.Success();
-        }
+        if (product.Equals(null))
+            return ServiceResult.Failed(new[] { "Ürün bulunamadı" });
+
+        _productRepository.Delete(product);
+        await _unitOfWork.SaveChangesAsync();
+
+        return ServiceResult.Success();
     }
-
-    public  async Task<ServiceResult<List<ProductDto>>> GetAllOfProductAsync()
+    public async Task<ServiceResult<List<ProductDto>>> GetAllOfProductAsync()
     {
-       var theList= await productInterface.GetAll().Select(x=>new ProductDto(x.Id,x.Name,x.Price,x.Stok)).ToListAsync();
+        var dtoList = await _productRepository.GetAll()
+            .Select(p => new ProductDto(p.Id, p.Name, p.Price, p.StockCount))
+            .ToListAsync();
 
-       return ServiceResult<List<ProductDto>>.Success(theList);
+        return ServiceResult<List<ProductDto>>.Success(dtoList);
     }
 }

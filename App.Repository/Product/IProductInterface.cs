@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Repository;
+namespace Repository.Product;
 
 public interface IProductInterface:IGenericRepository<Product>
 {

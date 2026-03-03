@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Repository;
+namespace Repository.Product;
 
 
 public class ProductRepository(AppDbContext dbContext) : GenericRepository<Product>(dbContext),IProductInterface
@@ -9,6 +9,4 @@ public class ProductRepository(AppDbContext dbContext) : GenericRepository<Produ
     {
         return await _dbSet.OrderByDescending(i => i.Price).Take(count).ToListAsync();
     }
-
-   
 }

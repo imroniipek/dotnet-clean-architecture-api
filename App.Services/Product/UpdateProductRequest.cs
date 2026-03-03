@@ -1,3 +1,3 @@
-﻿namespace Services;
+﻿namespace Services.Product;
 
-public record UpdateProductRequest(int Id,string Name,decimal Price,int Stok);
+public record UpdateProductRequest(int Id,string Name,decimal Price,int Stock);

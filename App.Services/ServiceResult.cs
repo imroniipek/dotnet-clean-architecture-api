@@ -13,21 +13,33 @@ public class ServiceResult<T>
 
     public bool IsFailed => !IsSuccess;
     
-    public HttpStatusCode statusCode { get; set; }
+    public string? UrlAsCreated { get; set; }
+    
+    public HttpStatusCode StatusCode { get; set; }
 
     public static ServiceResult<T> Success(T data,HttpStatusCode statusCode=HttpStatusCode.OK)
         => new()
         {
             Data = data,
             ErrorMessages = Enumerable.Empty<string>(),
-            statusCode = statusCode,
+            StatusCode = statusCode,
         };
+
+    public static ServiceResult<T> SuccessAsCreated(T data,string url)
+    {
+        return new ServiceResult<T>()
+        {
+            Data = data,
+            StatusCode = HttpStatusCode.Created,
+            UrlAsCreated = url,
+        };
+    }
 
     public static ServiceResult<T> Failed(IEnumerable<string> errors,HttpStatusCode statusCode=HttpStatusCode.BadRequest)
         => new()
         {
             ErrorMessages = errors,
-            statusCode = statusCode
+            StatusCode = statusCode
         };
 }
 
@@ -42,19 +54,20 @@ public class ServiceResult
 
     public bool IsFailed => !IsSuccess;
     
-    public HttpStatusCode statusCode { get; set; }
+    public HttpStatusCode StatusCode { get; set; }
 
     public static ServiceResult Success(HttpStatusCode statusCode=HttpStatusCode.OK)
         => new()
         {
             ErrorMessages = Enumerable.Empty<string>(),
-            statusCode = statusCode,
+            StatusCode = statusCode,
         };
+    
 
     public static ServiceResult Failed(IEnumerable<string> errors,HttpStatusCode statusCode=HttpStatusCode.BadRequest)
         => new()
         {
             ErrorMessages = errors,
-            statusCode = statusCode
+            StatusCode = statusCode
         };
 }

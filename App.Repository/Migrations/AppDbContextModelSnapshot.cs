@@ -37,7 +37,7 @@ namespace Repository.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("Stok")
+                    b.Property<int>("StokCount")
                         .HasColumnType("int");
 
                     b.HasKey("Id");

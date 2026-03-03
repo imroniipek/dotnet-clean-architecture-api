@@ -1,4 +1,4 @@
-﻿namespace Repository;
+﻿namespace Repository.Product;
 
 public class Product
 {
@@ -8,6 +8,6 @@ public class Product
     
     public decimal Price { get; set; }
     
-    public int Stok { get; set; }
+    public int StockCount { get; set; }
     
 }

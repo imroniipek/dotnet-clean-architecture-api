@@ -14,29 +14,33 @@ public class CustomBaseController : ControllerBase
     //Ekleme işlemlerini yaparken biz bunu kullanırızz//
     public IActionResult CreateActionResult<T>(ServiceResult<T> result)
     {
-        if (result.statusCode == HttpStatusCode.NoContent)
+        if (result.StatusCode == HttpStatusCode.NoContent)
         {
-            return new ObjectResult(null) { StatusCode = (int)result.statusCode };
+            return new ObjectResult(null) { StatusCode = (int)result.StatusCode };
         }
 
-        return new ObjectResult(result.Data) { StatusCode = (int)result.statusCode };
+        if (result.StatusCode==HttpStatusCode.Created)
+        {
+            return new ObjectResult(result.Data) { StatusCode = (int)result.StatusCode,};
+        }
+
+        return new ObjectResult(result.Data) { StatusCode = (int)result.StatusCode };
     }
 
   //Update ve Delete işlemlerinde ise bunu kullanacaz
     [NonAction]
     public IActionResult CreateActionResult(ServiceResult result)
     {
-        if (result.statusCode == HttpStatusCode.NoContent)
+        if (result.StatusCode == HttpStatusCode.NoContent)
         {
-            return new ObjectResult(null) { StatusCode = (int)result.statusCode };
+            return new ObjectResult(null) { StatusCode = (int)result.StatusCode };
         }
 
         if (result.IsFailed)
         {
-            return new ObjectResult(result.ErrorMessages) { StatusCode = (int)result.statusCode };
-            
+            return new ObjectResult(result.ErrorMessages) { StatusCode = (int)result.StatusCode };
         }
 
-        return new ObjectResult(null) { StatusCode = (int)result.statusCode };
+        return new ObjectResult(null) { StatusCode = (int)result.StatusCode };
     }
 }
